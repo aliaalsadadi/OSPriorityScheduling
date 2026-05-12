@@ -7,7 +7,7 @@
 
 Input format:
 ```
-id arrival burst priority
+id burst arrival priority
 ```
 Terminate input with:
 ```

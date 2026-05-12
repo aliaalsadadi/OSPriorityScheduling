@@ -93,67 +93,45 @@ public class Main {
         StringBuilder gantt = new StringBuilder();
         boolean started = false;
 
-        Process current = null;
-        int sliceRemaining = 0;
-
         while (completed < processes.size()) {
-            while (arrivalIndex < byArrival.size() && byArrival.get(arrivalIndex).arrival == time) {
+            while (arrivalIndex < byArrival.size() && byArrival.get(arrivalIndex).arrival <= time) {
                 enqueue(readyQueues, byArrival.get(arrivalIndex));
                 arrivalIndex++;
             }
 
-            if (current == null) {
-                if (readyQueues.isEmpty()) {
-                    if (arrivalIndex < byArrival.size()) {
-                        time = Math.max(time, byArrival.get(arrivalIndex).arrival);
-                        continue;
-                    }
-                    break;
+            if (readyQueues.isEmpty()) {
+                if (arrivalIndex < byArrival.size()) {
+                    time = Math.max(time, byArrival.get(arrivalIndex).arrival);
+                    continue;
                 }
-                current = dequeueHighestPriority(readyQueues);
-                if (current.startTime == -1) {
-                    current.startTime = time;
-                }
-                sliceRemaining = quantum;
-                if (!started) {
-                    gantt.append(time);
-                    started = true;
-                }
-            } else {
-                Integer bestPriority = readyQueues.isEmpty() ? null : readyQueues.firstKey();
-                if (bestPriority != null && bestPriority < current.priority) {
-                    enqueue(readyQueues, current);
-                    gantt.append("-p").append(current.id).append("-").append(time);
-                    current = dequeueHighestPriority(readyQueues);
-                    if (current.startTime == -1) {
-                        current.startTime = time;
-                    }
-                    sliceRemaining = quantum;
-                }
+                break;
             }
 
-            if (current == null) {
-                continue;
+            Process current = dequeueHighestPriority(readyQueues);
+            if (current.startTime == -1) {
+                current.startTime = time;
+            }
+            if (!started) {
+                gantt.append(time);
+                started = true;
             }
 
-            current.remaining--;
-            sliceRemaining--;
-            time++;
+            int runFor = Math.min(quantum, current.remaining);
+            current.remaining -= runFor;
+            time += runFor;
 
-            while (arrivalIndex < byArrival.size() && byArrival.get(arrivalIndex).arrival == time) {
+            while (arrivalIndex < byArrival.size() && byArrival.get(arrivalIndex).arrival <= time) {
                 enqueue(readyQueues, byArrival.get(arrivalIndex));
                 arrivalIndex++;
             }
+
+            gantt.append("-p").append(current.id).append("-").append(time);
 
             if (current.remaining == 0) {
                 current.completionTime = time;
                 completed++;
-                gantt.append("-p").append(current.id).append("-").append(time);
-                current = null;
-            } else if (sliceRemaining == 0) {
+            } else {
                 enqueue(readyQueues, current);
-                gantt.append("-p").append(current.id).append("-").append(time);
-                current = null;
             }
         }
 
