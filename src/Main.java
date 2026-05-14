@@ -47,7 +47,7 @@ public class Main {
         System.out.print("Enter quantum time (ms): ");
         int quantum = readPositiveInt(scanner);
 
-        System.out.println("Enter processes as: id burst(ms) arrival(ms) priority (0 0 0 0 to finish)");
+        System.out.println("Enter processes as: id arrival(ms) burst(ms) priority (0 0 0 0 to finish)");
         List<Process> processes = new ArrayList<>();
         Map<Integer, Boolean> seenIds = new HashMap<>();
         int inputIndex = 0;
@@ -55,8 +55,8 @@ public class Main {
         while (true) {
             System.out.print("Process " + (inputIndex + 1) + ": ");
             int id = scanner.nextInt();
-            int burst = scanner.nextInt();
             int arrival = scanner.nextInt();
+            int burst = scanner.nextInt();
             int priority = scanner.nextInt();
 
             if (id == 0 && arrival == 0 && burst == 0 && priority == 0) {
