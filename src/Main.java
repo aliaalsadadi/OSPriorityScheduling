@@ -15,8 +15,42 @@ import java.util.Scanner;
 import java.util.TreeMap;
 
 
+
+
 public class Main {
 
+    public static class Process {
+        final int id;
+        final int arrival;
+        final int burst;
+        final int priority;
+        final int inputIndex;
+
+        int remaining;
+        int startTime = -1;
+        int completionTime = -1;
+
+        Process(int id, int arrival, int burst, int priority, int inputIndex) {
+            this.id = id;
+            this.arrival = arrival;
+            this.burst = burst;
+            this.priority = priority;
+            this.inputIndex = inputIndex;
+            this.remaining = burst;
+        }
+
+        int turnaroundTime() {
+            return completionTime - arrival;
+        }
+
+        int responseTime() {
+            return startTime - arrival;
+        }
+
+        int waitingTime() {
+            return turnaroundTime() - burst;
+        }
+    }
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -90,7 +124,7 @@ public class Main {
         int completed = 0;
         int arrivalIndex = 0;
 
-        StringBuilder gantt = new StringBuilder();
+        List<String> ganttTokens = new ArrayList<>();
         boolean started = false;
 
         while (completed < processes.size()) {
@@ -101,7 +135,16 @@ public class Main {
 
             if (readyQueues.isEmpty()) {
                 if (arrivalIndex < byArrival.size()) {
+                    int idleStart = time;
                     time = Math.max(time, byArrival.get(arrivalIndex).arrival);
+                    if (time > idleStart) {
+                        if (!started) {
+                            ganttTokens.add(String.valueOf(idleStart));
+                            started = true;
+                        }
+                        ganttTokens.add("Idle");
+                        ganttTokens.add(String.valueOf(time));
+                    }
                     continue;
                 }
                 break;
@@ -111,11 +154,8 @@ public class Main {
             if (current.startTime == -1) {
                 current.startTime = time;
             }
-            if (!started) {
-                gantt.append(time);
-                started = true;
-            }
 
+            int runStart = time;
             int runFor = Math.min(quantum, current.remaining);
             current.remaining -= runFor;
             time += runFor;
@@ -125,7 +165,12 @@ public class Main {
                 arrivalIndex++;
             }
 
-            gantt.append("-p").append(current.id).append("-").append(time);
+            if (!started) {
+                ganttTokens.add(String.valueOf(runStart));
+                started = true;
+            }
+            ganttTokens.add("P" + current.id);
+            ganttTokens.add(String.valueOf(time));
 
             if (current.remaining == 0) {
                 current.completionTime = time;
@@ -135,7 +180,7 @@ public class Main {
             }
         }
 
-        return gantt.toString();
+        return String.join(" - ", ganttTokens);
     }
 
     private static void enqueue(
