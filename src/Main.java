@@ -38,18 +38,6 @@ public class Main {
             this.inputIndex = inputIndex;
             this.remaining = burst;
         }
-
-        int turnaroundTime() {
-            return completionTime - arrival;
-        }
-
-        int responseTime() {
-            return startTime - arrival;
-        }
-
-        int waitingTime() {
-            return turnaroundTime() - burst;
-        }
     }
 
     public static void main(String[] args) {
@@ -95,7 +83,7 @@ public class Main {
             return;
         }
 
-        String gantt = runPriorityRoundRobin(processes, quantum);
+        String gantt = schedule(processes, quantum);
 
         System.out.println();
         System.out.println("Gantt Chart (ms):");
@@ -113,11 +101,14 @@ public class Main {
         return value;
     }
 
-    private static String runPriorityRoundRobin(List<Process> processes, int quantum) {
+    private static String schedule(List<Process> processes, int quantum) {
         List<Process> byArrival = new ArrayList<>(processes);
-        byArrival.sort(Comparator
-                .comparingInt((Process p) -> p.arrival)
-                .thenComparingInt(p -> p.inputIndex));
+        byArrival.sort((a, b) -> {
+            if (a.arrival != b.arrival) {
+                return a.arrival - b.arrival;
+            }
+            return a.inputIndex - b.inputIndex;
+        });
 
         TreeMap<Integer, ArrayDeque<Process>> readyQueues = new TreeMap<>();
         int time = 0;
@@ -150,7 +141,7 @@ public class Main {
                 break;
             }
 
-            Process current = dequeueHighestPriority(readyQueues);
+            Process current = dequeue(readyQueues);
             if (current.startTime == -1) {
                 current.startTime = time;
             }
@@ -184,24 +175,24 @@ public class Main {
     }
 
     private static void enqueue(
-            TreeMap<Integer, ArrayDeque<Process>> readyQueues,
+            TreeMap<Integer, ArrayDeque<Process>> q,
             Process process
     ) {
-        ArrayDeque<Process> queue = readyQueues.computeIfAbsent(
+        ArrayDeque<Process> queue = q.computeIfAbsent(
                 process.priority,
                 k -> new ArrayDeque<>()
         );
         queue.addLast(process);
     }
 
-    private static Process dequeueHighestPriority(
-            TreeMap<Integer, ArrayDeque<Process>> readyQueues
+    private static Process dequeue(
+            TreeMap<Integer, ArrayDeque<Process>> q
     ) {
-        int priority = readyQueues.firstKey();
-        ArrayDeque<Process> queue = readyQueues.get(priority);
+        int priority = q.firstKey();
+        ArrayDeque<Process> queue = q.get(priority);
         Process process = queue.removeFirst();
         if (queue.isEmpty()) {
-            readyQueues.remove(priority);
+            q.remove(priority);
         }
         return process;
     }
@@ -217,9 +208,9 @@ public class Main {
                 "ID", "Arrival(ms)", "Burst(ms)", "Priority", "TAT(ms)", "RT(ms)", "WT(ms)");
 
         for (Process process : processes) {
-            int tat = process.turnaroundTime();
-            int rt = process.responseTime();
-            int wt = process.waitingTime();
+            int tat = process.completionTime - process.arrival;
+            int rt = process.startTime - process.arrival;
+            int wt = tat - process.burst;
 
             totalTurnaround += tat;
             totalResponse += rt;
